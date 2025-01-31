@@ -16,7 +16,7 @@ A web-based interface for interacting with Ollama models, designed to run on Unr
 
 2. **Clone the Repository**
    ```bash
-   git clone [GIT LINK] L2PC-Ollama-Portal
+   git clone https://github.com/sadoway7/L2PC-Ollama-Portal.git
    ```
 
 3. **Configure Domain Access**
