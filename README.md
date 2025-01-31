@@ -25,13 +25,26 @@ A web-based interface for interacting with Ollama models, designed to run on Unr
    nano vite.config.js
    ```
    
-   Replace or add the configuration with your domain:
+   Replace the entire content of the file with:
    ```javascript
-   export default {
+   import { defineConfig } from 'vite'
+   import react from '@vitejs/plugin-react'
+
+   export default defineConfig({
+     plugins: [react()],
      preview: {
-       allowedHosts: ['your.domain.com']
+       host: '0.0.0.0',
+       port: 4173,
+       strictPort: true,
+       allowedHosts: ['your.domain.com']  // Replace with your domain
+     },
+     server: {
+       host: '0.0.0.0',
+       port: 4173,
+       strictPort: true,
+       allowedHosts: ['your.domain.com']  // Replace with your domain
      }
-   };
+   })
    ```
    
    Save the file:
