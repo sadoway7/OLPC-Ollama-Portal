@@ -1,61 +1,98 @@
-# L2 Massage Support - Unraid Deployment Guide
+# L2PC Ollama Portal
 
-This document provides instructions on how to deploy the L2 Massage Support application in Unraid using the Unraid Docker UI.
+A web-based interface for interacting with Ollama models, designed to run on Unraid.
 
 ## Prerequisites
+- Unraid server
+- Docker installed on Unraid
+- Git access
 
--   An Unraid server with Docker support enabled.
--   The application files for L2 Massage Support.
+## Installation Steps
 
-## Deployment Steps
+1. **Navigate to appdata Directory**
+   ```bash
+   cd /mnt/user/appdata
+   ```
 
-1.  **Prepare the Application Files:**
-    -   Ensure all application files (e.g., `package.json`, `index.html`, `src` directory) are located in a directory on your Unraid server. For example, `/mnt/user/appdata/l2-massage-support`.
+2. **Clone the Repository**
+   ```bash
+   git clone [GIT LINK] L2PC-Ollama-Portal
+   ```
 
-2.  **Open the Unraid Docker UI:**
-    -   Navigate to the "Docker" tab in your Unraid web interface.
+3. **Configure Domain Access**
+   ```bash
+   cd L2PC-Ollama-Portal
+   nano vite.config.js
+   ```
+   
+   Replace or add the configuration with your domain:
+   ```javascript
+   export default {
+     preview: {
+       allowedHosts: ['your.domain.com']
+     }
+   };
+   ```
+   
+   Save the file:
+   - Press `CTRL + X` to exit
+   - Press `Y` to save changes
+   - Press `ENTER` to confirm
 
-3.  **Add a New Container:**
-    -   Click on the "Add Container" button.
+4. **Configure Docker Container**
+   - Open Unraid's Docker tab
+   - Click "Add Container"
+   - Configure the following settings:
 
-4.  **Configure the Container:**
-    -   **Name:** Enter a name for your container, such as `l2-massage-support`.
-    -   **Repository:** Leave this field blank.
-    -   **Image:** Enter `node:18` as the image. This will use the official Node.js image.
-    -   **Network Type:** Select `bridge`.
-    -   **Port Mappings:**
-        -   Click "Add another Path, Port or Variable".
-        -   **Container Port:** Enter `5173`.
-        -   **Host Port:** Enter a port that is not in use on your Unraid server, such as `8080`.
-        -   **Protocol:** Select `tcp`.
-    -   **Path Mappings:**
-        -   Click "Add another Path, Port or Variable".
-        -   **Container Path:** Enter `/app`.
-        -   **Host Path:** Enter the path to your application files on your Unraid server, e.g., `/mnt/user/appdata/l2-massage-support`.
-        -   **Access Mode:** Select `Read/Write`.
-    -   **Extra Parameters:**
-        -   Click "Add another Path, Port or Variable".
-        -   **Variable:** Enter `NODE_ENV`.
-        -   **Value:** Enter `production`.
-    -   **Post Arguments:**
-        -   Enter `npm run build && npm run preview -- --host 0.0.0.0`
+   **Basic Configuration:**
+   - Name: `L2PC-Ollama-Portal`
+   - Repository: `node:20-slim`
+   - Network Type: `Bridge`
+   - Console: `Shell`
 
-5.  **Apply and Start the Container:**
-    -   Click "Apply" to save the container configuration.
-    -   Click "Start" to start the container.
+   **Post Arguments:**
+   ```bash
+   sh -c "cd /app && rm -rf node_modules package-lock.json && NODE_ENV=development npm install && npm run build && NODE_ENV=production npm run preview -- --host 0.0.0.0"
+   ```
 
-6.  **Access the Application:**
-    -   Open a web browser and navigate to `http://<your-unraid-ip>:<host-port>`. For example, `http://192.168.1.100:8080`.
+   **Path Configuration:**
+   - Config Type: `Path`
+   - Name: `App Data`
+   - Host Path: `/mnt/user/appdata/L2PC-Ollama-Portal`
+   - Container Path: `/app`
+
+   **Port Configuration:**
+   - Config Type: `Port`
+   - Name: `Web UI`
+   - Host Port: `4127`
+   - Container Port: `4127`
+   - Connection Type: `TCP`
+
+5. **Start the Container**
+   - Click "Apply" to save the container settings
+   - Start the container from the Docker UI
+
+6. **Access the Application**
+   - Open your browser
+   - Navigate to `http://your.domain.com:4127` or `http://localhost:4127`
+
+7. **Initial Setup**
+   - Send the message `settings123!` in the chat to access the settings menu
+   - Configure your Ollama URL
+   - Select your preferred model (e.g., llama2, mistral)
+   - Save your settings
 
 ## Notes
+- Settings access via `settings123!` is temporary and will be updated in future versions
+- The configuration is currently stored in browser cache and needs to be set up locally on first use
+- Server-side configuration is planned for future updates
+- For cleaner URLs without port numbers, consider using NGINX for domain mapping
 
--   Ensure that the host port you choose is not already in use by another service on your Unraid server.
--   The application will be served from the specified host port.
--   The `NODE_ENV=production` environment variable ensures that the application runs in production mode.
--   The `npm run build && npm run preview -- --host 0.0.0.0` command builds the application and starts a preview server that is accessible from the network.
+## Contributing
+This is a hobby project I'm working on in my spare time. Feel free to open issues or submit pull requests, but please note that response times may vary as this is a side project.
 
-## Troubleshooting
+## License
+Released under MIT License. Feel free to use, modify, and share this project.
 
--   If the application does not start, check the container logs for any errors.
--   Ensure that the path mappings are correct and that the application files are accessible by the container.
--   If you encounter issues with the application, refer to the application's documentation or contact the application's support team.
+## Support
+This is a hobby project maintained in my free time. If you find bugs or have questions, feel free to open an issue on GitHub. I'll help when I can, but responses might take some time.
