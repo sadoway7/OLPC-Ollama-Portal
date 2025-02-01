@@ -16,7 +16,7 @@ export const fetchModels = async (openWebUIUrl, apiKey) => {
     }
     const data = await response.json();
     if (!data || !Array.isArray(data.data)) {
-      throw new Error('Invalid response format from OpenWebUI API.');
+      throw new Error('Invalid response format from API. Check settings, load default settings, and save. This is a known bug.');
     }
     return data.data;
   } catch (error) {
