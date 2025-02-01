@@ -1,248 +1,184 @@
 import React, { useState, useEffect, useRef } from 'react';
-    import { FiSettings, FiCopy, FiTrash2 } from 'react-icons/fi';
-    
-    function App() {
-      const [messages, setMessages] = useState([]);
-      const [input, setInput] = useState('');
-      const [showSettings, setShowSettings] = useState(false);
-      const [ollamaUrl, setOllamaUrl] = useState(() => localStorage.getItem('ollamaUrl') || 'https://www.ollamaurl.com');
-      const [models, setModels] = useState([]);
-      const [selectedModel, setSelectedModel] = useState(null);
-      const chatContainerRef = useRef(null);
-      const [fetchError, setFetchError] = useState(null);
-      const [isTyping, setIsTyping] = useState(false);
-      const [showSettingsButton, setShowSettingsButton] = useState(false);
-      const [showBanner, setShowBanner] = useState(() => localStorage.getItem('showBanner') === 'true');
-      const [bannerMessage, setBannerMessage] = useState(() => localStorage.getItem('bannerMessage') || '');
-    
-      useEffect(() => {
-        const storedModel = localStorage.getItem('selectedModel');
-        if (storedModel) {
-          setSelectedModel(storedModel);
-        } else {
-          setSelectedModel('deepseek-coder:instruct');
-        }
-        fetchModels();
-      }, []);
-    
-      const fetchModels = async () => {
-        try {
-          const response = await fetch(`${ollamaUrl}/api/tags`);
-          if (response.ok) {
-            const data = await response.json();
-            setModels(data.models.map(model => model.name));
-            setFetchError(null);
-          } else {
-            const errorText = await response.text();
-            console.error('Failed to fetch models:', response.status, response.statusText, errorText);
-            setFetchError(`Failed to fetch models: ${response.status} ${response.statusText} - ${errorText}`);
-          }
-        } catch (error) {
-          console.error('Error fetching models:', error);
-          setFetchError(`Error fetching models: ${error.message}`);
-        }
-      };
-    
-      const handleSettingsSubmit = (e) => {
-        e.preventDefault();
-        localStorage.setItem('ollamaUrl', ollamaUrl);
-        localStorage.setItem('selectedModel', selectedModel);
-        localStorage.setItem('showBanner', showBanner);
-        localStorage.setItem('bannerMessage', bannerMessage);
-        fetchModels();
-        setShowSettings(false);
-      };
-    
-        const handleClearChat = () => {
-            setMessages([]);
-        };
-    
-      const handleSendMessage = async () => {
-        if (!input.trim()) return;
-    
-        if (input === 'settings123!') {
-            setShowSettingsButton(true);
-            setInput('');
-            return;
-        }
-    
-        const userMessage = { role: 'user', content: input };
-        setMessages(prevMessages => [...prevMessages, userMessage]);
-        setInput('');
-        setIsTyping(true);
-    
-        try {
-          const response = await fetch(`${ollamaUrl}/api/chat`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: selectedModel,
-              messages: [...messages, userMessage],
-              stream: false,
-            }),
-          });
-    
-          if (response.ok) {
-            const data = await response.json();
-            const assistantMessage = { role: 'assistant', content: data.message.content };
-            setMessages(prevMessages => [...prevMessages, assistantMessage]);
-          } else {
-            console.error('Failed to send message:', response.statusText);
-            const errorAssistantMessage = { role: 'assistant', content: 'Failed to get response from Ollama.' };
-            setMessages(prevMessages => [...prevMessages, errorAssistantMessage]);
-          }
-        } catch (error) {
-          console.error('Error sending message:', error);
-          const errorAssistantMessage = { role: 'assistant', content: 'Failed to get response from Ollama.' };
-          setMessages(prevMessages => [...prevMessages, errorAssistantMessage]);
-        } finally {
-            setIsTyping(false);
-        }
-      };
-    
-      const handleCopyMessage = (messageContent) => {
-        const tempElement = document.createElement('div');
-        tempElement.innerHTML = messageContent;
-        const textToCopy = tempElement.textContent || tempElement.innerText || '';
-      
-        navigator.clipboard.writeText(textToCopy)
-          .then(() => {
-            console.log('Text copied to clipboard:', textToCopy);
-          })
-          .catch(err => {
-            console.error('Failed to copy text:', err);
-          });
-      };
-    
-      useEffect(() => {
-        if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-      }, [messages]);
-    
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-          <div className="chat-header">
-            <div className="header-content">
-                <h2>L2PC Ollama Portal</h2>
-                <div className="header-buttons">
-                    {showSettingsButton && (
-                        <button className="settings-button" onClick={() => setShowSettings(true)}>
-                            <FiSettings />
-                        </button>
-                    )}
-                </div>
-            </div>
-          </div>
-          {showBanner && bannerMessage && (
-            <div className="banner" dangerouslySetInnerHTML={{ __html: bannerMessage }} />
-          )}
-          {fetchError && (
-            <div className="error-message">
-              {fetchError}
-            </div>
-          )}
-          <div className="chat-container" ref={chatContainerRef}>
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`message ${message.role === 'user' ? 'user-message' : 'assistant-message'}`}
-              >
-                <div className="message-content" dangerouslySetInnerHTML={{ __html: message.content }} />
-                  {message.role === 'assistant' && (
-                      <button className="copy-button" onClick={() => handleCopyMessage(message.content)}>
-                          <FiCopy />
-                      </button>
-                  )}
-              </div>
-            ))}
-            {isTyping && <div className="typing-indicator">Thinking...</div>}
-          </div>
-          <div className="chat-input-area">
-          {showSettingsButton && (
-            <select
-                className="model-select"
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-            >
-                {models.map((model) => (
-                    <option key={model} value={model}>
-                        {model}
-                    </option>
-                ))}
-            </select>
-          )}
-            <div className="input-and-buttons">
-                <input
-                type="text"
-                className="chat-input"
-                placeholder="Type your message..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                    handleSendMessage();
-                    }
-                }}
-                />
-                <div className="action-buttons">
-                    <button className="send-button" onClick={handleSendMessage}>
-                        Send
-                    </button>
-                    <button className="clear-button" onClick={handleClearChat}>
-                        <FiTrash2 />
-                    </button>
-                </div>
-            </div>
-          </div>
-    
-          {showSettings && (
-            <div className="settings-modal">
-              <div className="settings-content">
-                <h3>Settings</h3>
-                <form className="settings-form" onSubmit={handleSettingsSubmit}>
-                  <label>
-                    Ollama URL:
-                    <input
-                      type="text"
-                      value={ollamaUrl}
-                      onChange={(e) => setOllamaUrl(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Select Model:
-                    <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
-                      {models.map((model) => (
-                        <option key={model} value={model}>
-                          {model}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Show Banner:
-                    <input
-                      type="checkbox"
-                      checked={showBanner}
-                      onChange={(e) => setShowBanner(e.target.checked)}
-                    />
-                  </label>
-                  <label>
-                    Banner Message (HTML):
-                    <textarea
-                      value={bannerMessage}
-                      onChange={(e) => setBannerMessage(e.target.value)}
-                    />
-                  </label>
-                  <button type="submit">Save</button>
-                </form>
-              </div>
-            </div>
-          )}
-        </div>
-      );
+import Header from './components/Header';
+import ChatInput from './components/ChatInput';
+import ChatMessages from './components/ChatMessages';
+import SettingsModal from './components/SettingsModal';
+import { fetchModels, sendChatMessage } from './api/openwebui';
+import config from './config.json';
+import { handleCommand } from './commands';
+import { handleApiError } from './utils/error';
+import './index.css';
+
+function App() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [showSettings, setShowSettings] = useState(true);
+  const [openWebUIUrl, setOpenWebUIUrl] = useState(localStorage.getItem('openWebUIUrl') || config.openWebUIUrl);
+  const [apiKey, setApiKey] = useState(localStorage.getItem('apiKey') || config.apiKey);
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState(localStorage.getItem('selectedModel') || config.selectedModel);
+  const [fetchError, setFetchError] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatContainerRef = useRef(null);
+
+  useEffect(() => {
+    const storedOpenWebUIUrl = localStorage.getItem('openWebUIUrl');
+    const storedApiKey = localStorage.getItem('apiKey');
+    const storedSelectedModel = localStorage.getItem('selectedModel');
+
+    if (storedOpenWebUIUrl) {
+      setOpenWebUIUrl(storedOpenWebUIUrl);
+    } else {
+      localStorage.setItem('openWebUIUrl', config.openWebUIUrl);
     }
+
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
+    } else {
+      localStorage.setItem('apiKey', config.apiKey);
+    }
+
+    if (storedSelectedModel) {
+      setSelectedModel(storedSelectedModel);
+    } else {
+      localStorage.setItem('selectedModel', config.selectedModel);
+    }
+  }, []);
+
+  useEffect(() => {
+    const initialize = async () => {
+      if (openWebUIUrl && apiKey && selectedModel) {
+        try {
+          const fetchedModels = await fetchModels(openWebUIUrl, apiKey);
+          setModels(fetchedModels.map(model => model.id));
+        } catch (error) {
+          handleApiError(error, 'Initialization');
+          setFetchError(error.message);
+        }
+      }
+    };
+
+    initialize();
+  }, [openWebUIUrl, apiKey, selectedModel]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    if (input.startsWith('>')) {
+      const command = input.substring(1).trim();
+      handleCommand(command, setInput, setShowSettings);
+      return;
+    }
+
+    const userMessage = { role: 'user', content: input };
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+    setInput('');
+    setIsTyping(true);
+
+    try {
+      const response = await sendChatMessage(openWebUIUrl, apiKey, selectedModel, [...messages, userMessage]);
+      if (!response || !response.choices || !response.choices.length || !response.choices[0].message) {
+        throw new Error('Invalid response format from OpenWebUI API.');
+      }
+      const assistantMessage = { role: 'assistant', content: response.choices[0].message.content };
+      setMessages(prevMessages => [...prevMessages, assistantMessage]);
+    } catch (error) {
+      handleApiError(error, 'handleSendMessage');
+      const errorAssistantMessage = { role: 'assistant', content: 'Failed to get response from OpenWebUI.' };
+      setMessages(prevMessages => [...prevMessages, errorAssistantMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleSettingsChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'openWebUIUrl') {
+      setOpenWebUIUrl(value);
+    } else if (name === 'apiKey') {
+      setApiKey(value);
+    } else if (name === 'selectedModel') {
+      setSelectedModel(value);
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    localStorage.setItem('openWebUIUrl', openWebUIUrl);
+    localStorage.setItem('apiKey', apiKey);
+    localStorage.setItem('selectedModel', selectedModel);
+    setShowSettings(false);
+
+    try {
+      const fetchedModels = await fetchModels(openWebUIUrl, apiKey);
+      setModels(fetchedModels.map(model => model.id));
+      setFetchError(null);
+    } catch (error) {
+      handleApiError(error, 'handleSaveSettings');
+      setFetchError(error.message);
+    }
+  };
+
+  const handleLoadDefaultSettings = () => {
+    setOpenWebUIUrl(config.openWebUIUrl);
+    setApiKey(config.apiKey);
+    setSelectedModel(config.selectedModel);
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
+  };
+
+  const handleRetry = (index) => {
+    if (index > 0 && messages[index - 1].role === 'user') {
+      const userMessage = messages[index - 1];
+      const newMessages = messages.slice(0, index);
+      setMessages(newMessages);
+      handleSendMessage(userMessage.content + " please try again to give a better response", true);
+    }
+  };
+
+  useEffect(() => {
+    chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     
-    export default App;
+    const handleResize = () => {
+      document.body.style.height = `${window.innerHeight}px`;
+    };
+
+    handleResize(); // Set initial height
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [messages]);
+
+  return (
+    <div className="container">
+      <Header setShowSettings={setShowSettings} handleClearChat={handleClearChat} showSettings={showSettings} />
+      {fetchError && <div className="error-message">{fetchError}</div>}
+      <ChatMessages messages={messages} chatContainerRef={chatContainerRef} isTyping={isTyping} handleRetry={handleRetry} />
+      <ChatInput input={input} setInput={setInput} handleSend={handleSend} models={models} selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+      {showSettings && (
+        <div className="settings-modal">
+          <SettingsModal
+            showSettings={showSettings}
+            setShowSettings={setShowSettings}
+            openWebUIUrl={openWebUIUrl}
+            setOpenWebUIUrl={setOpenWebUIUrl}
+            apiKey={apiKey}
+            setApiKey={setApiKey}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            models={models}
+            handleSaveSettings={handleSaveSettings}
+            handleLoadDefaultSettings={handleLoadDefaultSettings}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
